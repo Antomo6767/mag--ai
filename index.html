@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>MAG AI Studio</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #f8f9fa; }
+        #sidebar { width: 260px; background: #fff; border-right: 1px solid #dee2e6; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        #chat-container { flex: 1; display: flex; flex-direction: column; padding: 20px; }
+        #messages { flex: 1; overflow-y: auto; background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .input-area { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #dee2e6; border-radius: 24px; outline: none; }
+        button { padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 24px; cursor: pointer; font-weight: bold; }
+        #new-chat-btn { width: 100%; padding: 12px; background: #e8f0fe; color: #1a73e8; border: 1px dashed #1a73e8; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
+        #drop-zone { border: 2px dashed #1a73e8; border-radius: 8px; padding: 20px; text-align: center; color: #1a73e8; margin-bottom: 15px; background: #e8f0fe; cursor: pointer; font-weight: 500; }
+        .user-msg { color: #1a73e8; font-weight: bold; margin-top: 15px; }
+        .ai-msg { color: #3c4043; margin-bottom: 20px; background: #f1f3f4; padding: 12px; border-radius: 8px; line-height: 1.5; }
+        #login-box { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); text-align: center; }
+        .history-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; color: #444; }
+        .history-item:hover { background: #f1f3f4; color: #1a73e8; }
+        h3 { margin-top: 0; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div id="login-box">
+        <div class="login-card">
+            <h2 style="color: #1a73e8; margin-bottom: 5px;">MAG AI</h2>
+            <p style="color: #5f6368; margin-bottom: 25px;">Συνδεθείτε με το Email σας</p>
+            <input type="email" id="email-input" placeholder="Όνομα ή Email" style="padding: 12px; width: 280px; margin-bottom: 20px; border: 1px solid #dadce0; border-radius: 4px; outline: none;"><br>
+            <button onclick="login()" style="width: 100%; border-radius: 4px;">Είσοδος</button>
+        </div>
+    </div>
+    <div id="sidebar">
+        <h3>MAG AI Studio</h3>
+        <button id="new-chat-btn" onclick="startNewChat()">+ Νέα Συνομιλία</button>
+        <div style="font-size: 14px; font-weight: bold; color: #5f6368; margin-bottom: 10px;">Ιστορικό</div>
+        <div id="history-list"></div>
+    </div>
+    <div id="chat-container">
+        <div id="drop-zone">Σύρετε και αφήστε αρχείο (.txt ή .pdf) εδώ για άμεση ανάλυση</div>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Ρωτήστε κάτι το MAG AI..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()">Αποστολή</button>
+        </div>
+    </div>
+    <script>
+        let allChats = {};
+        function login() {
+            let email = document.getElementById('email-input').value;
+            if(!email) return alert("Παρακαλώ βάλτε ένα email.");
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: email})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.message) {
+                    document.getElementById('login-box').style.display = 'none';
+                    loadHistory();
+                }
+            });
+        }
+        function sendMessage() {
+            let input = document.getElementById('user-input');
+            let text = input.value;
+            if(!text) return;
+            appendMessage('Εσείς', text, 'user-msg');
+            input.value = '';
+            fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            })
+            .then(res => res.json())
+            .then(data => {
+                appendMessage('MAG AI', data.response, 'ai-msg');
+                loadHistory();
+            });
+        }
+        function appendMessage(sender, text, className) {
+            let box = document.getElementById('messages');
+            box.innerHTML += '<div class="' + className + '"><strong>' + sender + ':</strong> <p style="margin: 5px 0 0 0;">' + text + '</p></div>';
+            box.scrollTop = box.scrollHeight;
+        }
+        function startNewChat() {
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('user-input').value = '';
+        }
+        function loadHistory() {
+            fetch('/history')
+            .then(res => res.json())
+            .then(data => {
+                let list = document.getElementById('history-list');
+                list.innerHTML = '';
+                allChats = {};
+                if(data.history && data.history.length > 0) {
+                    data.history.forEach(h => {
+                        allChats[h.id] = h;
+                        list.innerHTML += '<div class="history-item" onclick="viewChat(' + h.id + ')"><b>Q:</b> ' + h.user + '</div>';
+                    });
+                } else {
+                    list.innerHTML = '<div style="color:#777; font-size:13px;">Δεν υπάρχουν συζητήσεις.</div>';
+                }
+            });
+        }
+        function viewChat(id) {
+            let box = document.getElementById('messages');
+            box.innerHTML = '';
+            if(allChats[id]) {
+                appendMessage('Εσείς', allChats[id].user, 'user-msg');
+                appendMessage('MAG AI', allChats[id].ai, 'ai-msg');
+            }
+        }
+        let dz = document.getElementById('drop-zone');
+        dz.addEventListener('dragover', (e) => { e.preventDefault(); });
+        dz.addEventListener('drop', (e) => {
+            e.preventDefault();
+            let files = e.dataTransfer.files;
+            if (files.length > 0) {
+                let file = files[0];
+                let formData = new FormData();
+                formData.append('file', file);
+                appendMessage('Σύστημα', 'Ανέβασμα αρχείου: ' + file.name + '...', 'user-msg');
+                fetch('/upload', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.error) {
+                        appendMessage('Σύστημα', data.error, 'ai-msg');
+                    } else {
+                        appendMessage('MAG AI', data.response, 'ai-msg');
+                        loadHistory();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
