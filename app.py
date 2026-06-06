@@ -40,7 +40,7 @@ def call_groq_llama3(system_prompt, user_msg):
                 {"role": "user", "content": user_msg}
             ]
         )
-        return completion.choices.message.content
+        return completion.choices[0].message.content
     except Exception as e:
         return f"Σφάλμα επικοινωνίας με το Groq: {str(e)}"
 
