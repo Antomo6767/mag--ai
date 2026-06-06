@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-    <meta name="google-site-verification" content="kyUWQb8OfUNtJGvrF9Nc0D_WO52Lo_q3WZ1vBppA5XY" />
     <meta charset="UTF-8">
     <title>MAG AI Studio</title>
     <style>
@@ -29,7 +28,7 @@
             <h2 style="color: #1a73e8; margin-bottom: 5px;">MAG AI</h2>
             <p style="color: #5f6368; margin-bottom: 25px;">Συνδεθείτε με το Email σας</p>
             <input type="email" id="email-input" placeholder="Όνομα ή Email" style="padding: 12px; width: 280px; margin-bottom: 20px; border: 1px solid #dadce0; border-radius: 4px; outline: none;"><br>
-            <button onclick="login()" style="width: 100%; border-radius: 4px;">Είσοδος</button>
+            <button onclick="login()">Είσοδος</button>
         </div>
     </div>
     <div id="sidebar">
@@ -115,28 +114,6 @@
                 appendMessage('MAG AI', allChats[id].ai, 'ai-msg');
             }
         }
-        let dz = document.getElementById('drop-zone');
-        dz.addEventListener('dragover', (e) => { e.preventDefault(); });
-        dz.addEventListener('drop', (e) => {
-            e.preventDefault();
-            let files = e.dataTransfer.files;
-            if (files.length > 0) {
-                let file = files[0];
-                let formData = new FormData();
-                formData.append('file', file);
-                appendMessage('Σύστημα', 'Ανέβασμα αρχείου: ' + file.name + '...', 'user-msg');
-                fetch('/upload', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.error) {
-                        appendMessage('Σύστημα', data.error, 'ai-msg');
-                    } else {
-                        appendMessage('MAG AI', data.response, 'ai-msg');
-                        loadHistory();
-                    }
-                });
-            }
-        });
     </script>
 </body>
 </html>
