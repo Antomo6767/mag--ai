@@ -1,8 +1,9 @@
 import os
+import requests
 from flask import Flask, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from pypdf import PdfReader
-from groq import Groq  # Χρήση της επίσημης βιβλιοθήκης
+from groq import Groq
 
 app = Flask(__name__)
 app.secret_key = "super-secret-session-key"
@@ -32,7 +33,6 @@ with app.app_context():
 
 def call_groq_llama3(system_prompt, user_msg):
     try:
-        # Ασφαλής κλήση μέσω της βιβλιοθήκης groq
         completion = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
@@ -40,7 +40,7 @@ def call_groq_llama3(system_prompt, user_msg):
                 {"role": "user", "content": user_msg}
             ]
         )
-        return completion.choices[0].message.content
+        return completion.choices.message.content
     except Exception as e:
         return f"Σφάλμα επικοινωνίας με το Groq: {str(e)}"
 
@@ -107,5 +107,6 @@ def get_history():
     history = ChatHistory.query.filter_by(user_id=session['user_id']).order_by(ChatHistory.id.desc()).all()
     return jsonify({"history": [{"id": h.id, "user": h.user_message, "ai": h.ai_response} for h in history]})
 
-if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+# Διόρθωση εκκίνησης για να ακούει στη σωστή θύρα του Render
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
